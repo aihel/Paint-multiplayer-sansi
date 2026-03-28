@@ -2,35 +2,41 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>M.P paint deneme #7</title>
+<title>M.P paint deneme #10</title>
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+body{margin:0;font-family:Arial;background:#0f172a;color:white;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
 .hidden{display:none;}
 button{padding:10px;border-radius:10px;background:#1e293b;color:white;cursor:pointer;margin:5px;}
-#loginPage,#lobbyPage,#drawPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 input{padding:5px;margin:5px;border-radius:5px;border:none;}
+/* LOGIN PAGE */
+#loginPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+/* LOBBY PAGE */
+#lobbyPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;padding:20px;}
 #userList{width:300px;background:#020617;padding:10px;border-radius:10px;overflow:auto;}
 .user{display:flex;align-items:center;padding:5px;border-radius:10px;margin-bottom:5px;cursor:pointer;}
 .user img{width:40px;height:40px;border-radius:50%;margin-right:10px;}
 #invitePopup{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:10px;display:none;}
+/* DRAW PAGE */
+#drawPage{flex:1;display:flex;flex-direction:column;}
 #canvasBox{flex:1;display:flex;justify-content:center;align-items:center;position:relative;}
 canvas{background:white;border-radius:10px;}
 #brushPanel{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);padding:10px;border-radius:10px;display:flex;flex-direction:column;gap:10px;}
 #profileCards{position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:flex;gap:10px;}
 .profileCard{background:#020617;padding:5px 10px;border-radius:10px;display:flex;align-items:center;}
 .profileCard img{width:30px;height:30px;border-radius:50%;margin-right:5px;}
+#controls{height:60px;display:flex;justify-content:center;gap:20px;align-items:center;background:#020617;}
+.talkingGlow{box-shadow:0 0 15px lime;}
+/* CHAT PAGE */
 #chatPanel{position:absolute;top:0;right:0;width:300px;height:100%;background:#020617;display:flex;flex-direction:column;display:none;}
 #messages{flex:1;overflow:auto;padding:5px;}
 .msg{padding:5px;}
-#controls{height:60px;display:flex;justify-content:center;gap:20px;align-items:center;background:#020617;}
-.talkingGlow{box-shadow:0 0 15px lime;}
-.chat-notif{position:absolute;top:10px;right:320px;background:#16a34a;padding:5px;border-radius:5px;animation:fadeOut 3s forwards;}
+#chat-notif{position:absolute;top:10px;right:320px;background:#16a34a;padding:5px;border-radius:5px;animation:fadeOut 3s forwards;}
 @keyframes fadeOut{0%{opacity:1}100%{opacity:0}}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN PAGE -->
 <div id="loginPage">
   <h1>Hoşgeldin Meme Paint!</h1>
   <input type="text" placeholder="Kullanıcı adınız" id="username"/>
@@ -38,7 +44,7 @@ canvas{background:white;border-radius:10px;}
   <button id="loginBtn">Giriş Yap</button>
 </div>
 
-<!-- LOBBY -->
+<!-- LOBBY PAGE -->
 <div id="lobbyPage" class="hidden">
   <h2>Lobby</h2>
   <div id="userList"></div>
@@ -49,14 +55,14 @@ canvas{background:white;border-radius:10px;}
   </div>
 </div>
 
-<!-- DRAW -->
-<div id="drawPage" class="hidden" style="flex:1;display:flex;flex-direction:column;">
+<!-- DRAW PAGE -->
+<div id="drawPage" class="hidden">
   <div id="canvasBox">
     <canvas id="c" width="1200" height="700"></canvas>
     <div id="brushPanel">
       <label>Renk: <input type="color" id="brushColor" value="#000000"></label>
       <label>Kalınlık: <input type="range" id="brushSize" min="1" max="50" value="5"></label>
-      <label>Fırça Tipi: 
+      <label>Fırça Tipi:
         <select id="brushType">
           <option value="round">Yuvarlak</option>
           <option value="square">Kare</option>
@@ -82,10 +88,11 @@ canvas{background:white;border-radius:10px;}
 </div>
 
 <script type="module">
+// Firebase import
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// FIREBASE CONFIG
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyA3c63JOhpWcYkcEkiAjuZQIFqq_SJeXNM",
   authDomain: "painntt-6a376.firebaseapp.com",
@@ -94,47 +101,46 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// USER
-let myId=Math.random().toString(36).substr(2,9);
-let username="";
-let avatarURL="";
+// USER DATA
+let myId=Math.random().toString(36).substr(2,9), username="", avatarURL="";
 
 // LOGIN
 document.getElementById("loginBtn").onclick=()=>{
   username=document.getElementById("username").value||"User"+Math.floor(Math.random()*1000);
   const file=document.getElementById("avatarUpload").files[0];
   avatarURL=file?URL.createObjectURL(file):"https://i.pravatar.cc/40?u="+myId;
-  set(ref(db,"users/"+myId),{name:username,avatar:avatarURL});
+  set(ref(db,"users/"+myId),{name:username,avatar:avatarURL,lastActive:Date.now()});
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("lobbyPage").classList.remove("hidden");
 };
 
 // LOBBY
 const userListDiv=document.getElementById("userList");
-onValue(ref(db,"users"),snap=>{
-  const users=snap.val()||{}; userListDiv.innerHTML="";
-  for(let id in users){
-    if(id===myId) continue;
-    const u=users[id];
-    const el=document.createElement("div"); el.className="user"; el.id="user-"+id;
-    el.innerHTML=`<img src="${u.avatar}">${u.name}`;
-    el.onclick=()=>{set(ref(db,"invites/"+id),{from:myId});};
-    userListDiv.appendChild(el);
-  }
-});
+function updateUserList(){
+  onValue(ref(db,"users"),snap=>{
+    const users=snap.val()||{}; userListDiv.innerHTML="";
+    for(let id in users){
+      if(id===myId) continue;
+      const u=users[id];
+      const el=document.createElement("div"); el.className="user"; el.id="user-"+id;
+      el.innerHTML=`<img src="${u.avatar}">${u.name}`;
+      el.onclick=()=>{set(ref(db,"invites/"+id),{from:myId});};
+      userListDiv.appendChild(el);
+    }
+  });
+}
+updateUserList();
 
 // INVITE
 onChildAdded(ref(db,"invites/"+myId),snap=>{
-  const data=snap.val();
-  const popup=document.getElementById("invitePopup"); popup.style.display="block";
+  const data=snap.val(); const popup=document.getElementById("invitePopup"); popup.style.display="block";
   document.getElementById("acceptInvite").onclick=()=>{
-    startDraw([data.from,myId]);
-    popup.style.display="none";
+    startDraw([data.from,myId]); popup.style.display="none";
   };
   document.getElementById("declineInvite").onclick=()=>{popup.style.display="none";};
 });
 
-// DRAW PAGE
+// DRAW
 const canvas=document.getElementById("c"),ctx=canvas.getContext("2d");
 let drawing=false,undoStack=[],redoStack=[],brush={color:"#000",size:5,type:"round"};
 ["brushColor","brushSize","brushType"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
@@ -142,28 +148,27 @@ let drawing=false,undoStack=[],redoStack=[],brush={color:"#000",size:5,type:"rou
   brush.size=document.getElementById("brushSize").value;
   brush.type=document.getElementById("brushType").value;
 }));
-document.getElementById("undoBtn").onclick=()=>{if(undoStack.length){redoStack.push(c.toDataURL());let img=new Image();img.src=undoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
-document.getElementById("redoBtn").onclick=()=>{if(redoStack.length){undoStack.push(c.toDataURL());let img=new Image();img.src=redoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
+document.getElementById("undoBtn").onclick=()=>{if(undoStack.length){redoStack.push(canvas.toDataURL());let img=new Image();img.src=undoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
+document.getElementById("redoBtn").onclick=()=>{if(redoStack.length){undoStack.push(canvas.toDataURL());let img=new Image();img.src=redoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
 canvas.onmousedown=e=>{drawing=true;undoStack.push(canvas.toDataURL());};
 canvas.onmouseup=e=>drawing=false;
 canvas.onmousemove=e=>{if(!drawing)return;ctx.fillStyle=brush.color;ctx.lineWidth=brush.size;if(brush.type==="round"){ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();}else{ctx.fillRect(e.offsetX-brush.size/2,e.offsetY-brush.size/2,brush.size,brush.size);}};
 
-// START DRAW FUNCTION
+// START DRAW
 function startDraw(participants){
   document.getElementById("lobbyPage").classList.add("hidden");
   document.getElementById("drawPage").classList.remove("hidden");
-  // Meme şablonlarını animasyonlu çiz
   drawMemeTemplates();
 }
 
-// ANIMATED MEME SVG
+// MEME SVG ANIMATED
 function drawMemeTemplates(){
   const memes=[
     {name:"Smiley",steps:[{x:50,y:50},{x:80,y:50},{x:65,y:80}]},
     {name:"Pizza",steps:[{x:150,y:100},{x:180,y:100},{x:165,y:130}]},
     {name:"Robot",steps:[{x:300,y:200},{x:330,y:220},{x:310,y:250}]},
     {name:"CrazyHat",steps:[{x:400,y:100},{x:420,y:130},{x:390,y:130}]},
-    // ... 28+ örnek
+    // 28+ meme şablon ekleyebilirsin
   ];
   memes.forEach((m,i)=>{
     m.steps.forEach((p,j)=>{
@@ -172,7 +177,7 @@ function drawMemeTemplates(){
   });
 }
 
-// CHAT TOGGLE
+// CHAT
 const chatPanel=document.getElementById("chatPanel");
 document.getElementById("chatToggle").onclick=()=>{chatPanel.style.display=(chatPanel.style.display==="none")?"flex":"none";};
 document.getElementById("sendMsg").onclick=()=>{
@@ -184,7 +189,7 @@ onChildAdded(ref(db,"chat"),snap=>{
   const div=document.createElement("div"); div.className="msg"; div.innerText=d.user+": "+d.text;
   document.getElementById("messages").appendChild(div);
   if(chatPanel.style.display==="none"){
-    const notif=document.createElement("div"); notif.className="chat-notif"; notif.innerText=d.user+" mesaj yazdı";
+    const notif=document.createElement("div"); notif.id="chat-notif"; notif.innerText=d.user+" mesaj yazdı";
     document.body.appendChild(notif); setTimeout(()=>notif.remove(),3000);
   }
 });
@@ -192,9 +197,9 @@ onChildAdded(ref(db,"chat"),snap=>{
 // VOICE
 let micOn=false;
 document.getElementById("micBtn").onclick=async()=>{
-  if(!micOn){const s=await navigator.mediaDevices.getUserMedia({audio:true}); micOn=true;document.getElementById("micBtn").classList.add("active");} 
-  else{micOn=false;document.getElementById("micBtn").classList.remove("active");}};
+  if(!micOn){await navigator.mediaDevices.getUserMedia({audio:true}); micOn=true;document.getElementById("micBtn").classList.add("active");} 
+  else{micOn=false;document.getElementById("micBtn").classList.remove("active");};
+};
 </script>
-
 </body>
 </html>
