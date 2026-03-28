@@ -2,12 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>PRO Paint</title>
+<title>Paint PRO MAX</title>
 
 <style>
 body { margin:0; font-family:Arial; background:#111; color:white; }
 
-#login, #lobby, #game { display:none; }
+.page { display:none; padding:20px; }
 
 .user {
   display:flex;
@@ -23,18 +23,7 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 
 canvas { background:#fff; }
 
-#toolbar {
-  position:absolute; left:0; top:0; background:#222; padding:10px;
-}
-
-#brushMenu { display:none; }
-
-#chat {
-  position:fixed;
-  bottom:0;
-  width:100%;
-  background:#222;
-}
+#chat { position:fixed; bottom:0; width:100%; background:#222; display:none; }
 
 .bubble {
   position:absolute;
@@ -46,39 +35,25 @@ canvas { background:#fff; }
   border-radius:10px;
 }
 
-.closeBtn { cursor:pointer; color:red; margin-left:5px; }
 </style>
 </head>
 
 <body>
 
-<div id="login">
+<div id="login" class="page">
   <h2>Profil</h2>
-  <input id="username" placeholder="Ad">
+  <input id="name" placeholder="Ad">
   <input type="file" id="photo">
-  <button onclick="enter()">Gir</button>
+  <button onclick="login()">Gir</button>
 </div>
 
-<div id="lobby">
+<div id="lobby" class="page">
   <h2>Lobby</h2>
   <div id="users"></div>
 </div>
 
-<div id="game">
+<div id="game" class="page">
   <canvas id="c" width="800" height="500"></canvas>
-
-  <div id="toolbar">
-    <button onclick="toggleBrush()">></button>
-    <div id="brushMenu">
-      <input type="color" id="color">
-      <input type="range" id="size" min="1" max="30">
-      <select id="brushType">
-        <option value="square">Kare</option>
-        <option value="circle">Yuvarlak</option>
-        <option value="spray">Spray</option>
-      </select>
-    </div>
-  </div>
 </div>
 
 <div id="chat">
@@ -97,18 +72,24 @@ const firebaseConfig = {
   apiKey: "AIzaSyBVMvgD3u-UT5dAk72pXqLub05qNPjqPW8",
   authDomain: "dsohbet.firebaseapp.com",
   databaseURL: "https://dsohbet-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "dsohbet",
+  projectId: "dsohbet"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let myId = Math.random().toString(36).substr(2,9);
+let myId=Math.random().toString(36).substr(2,9);
 let username="", photo="", roomId=null;
 
-// GİRİŞ
-window.enter=()=>{
-  username=document.getElementById("username").value;
+// SAYFA GECİS
+function show(id){
+  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+  document.getElementById(id).style.display="block";
+}
+
+// LOGIN
+window.login=()=>{
+  username=document.getElementById("name").value;
   const file=document.getElementById("photo").files[0];
 
   const r=new FileReader();
@@ -119,24 +100,11 @@ window.enter=()=>{
       name:username, photo:photo, last:Date.now()
     });
 
-    document.getElementById("login").style.display="none";
-    document.getElementById("lobby").style.display="block";
+    show("lobby");
   };
 
   if(file) r.readAsDataURL(file);
 };
-
-// AFK temizleme
-setInterval(()=>{
-  onValue(ref(db,"users"),snap=>{
-    const u=snap.val();
-    for(let id in u){
-      if(Date.now()-u[id].last>20000){
-        remove(ref(db,"users/"+id));
-      }
-    }
-  });
-},10000);
 
 // LOBBY
 onValue(ref(db,"users"),snap=>{
@@ -152,15 +120,12 @@ onValue(ref(db,"users"),snap=>{
     const el=document.createElement("div");
     el.className="user";
 
-    el.innerHTML=`
-      <img src="${u.photo}">
-      <span>${u.name}</span>
-    `;
+    el.innerHTML=`<img src="${u.photo}">${u.name}`;
 
     el.onclick=()=>{
-      if(confirm(u.name+" davet edilsin mi?")){
+      if(confirm("Davet gönderilsin mi?")){
         set(ref(db,"invites/"+id),{
-          from:myId, name:username, photo:photo
+          from:myId, name:username
         });
       }
     };
@@ -169,13 +134,14 @@ onValue(ref(db,"users"),snap=>{
   }
 });
 
-// DAVET ALMA
+// DAVET
 onValue(ref(db,"invites/"+myId),snap=>{
   const inv=snap.val();
   if(!inv) return;
 
   if(confirm(inv.name+" seni davet etti")){
     roomId=Math.random().toString(36);
+
     set(ref(db,"rooms/"+roomId+"/players/"+myId),true);
     set(ref(db,"rooms/"+roomId+"/players/"+inv.from),true);
 
@@ -183,10 +149,11 @@ onValue(ref(db,"invites/"+myId),snap=>{
   }
 });
 
-// OYUN
+// GAME
 function startGame(){
-  document.getElementById("lobby").style.display="none";
-  document.getElementById("game").style.display="block";
+  show("game");
+  document.getElementById("chat").style.display="block";
+  startVoice();
 }
 
 // CANVAS
@@ -202,42 +169,16 @@ c.onmousemove=e=>{
   if(!drawing || !roomId) return;
 
   const x=e.offsetX, y=e.offsetY;
-  const color=document.getElementById("color").value||"#000";
-  const size=document.getElementById("size").value||5;
-  const type=document.getElementById("brushType").value;
 
-  draw(x,y,color,size,type);
+  ctx.fillRect(x,y,5,5);
 
-  push(ref(db,"rooms/"+roomId+"/draw"),{x,y,color,size,type});
+  push(ref(db,"rooms/"+roomId+"/draw"),{x,y});
 };
 
-function draw(x,y,color,size,type){
-  ctx.fillStyle=color;
-
-  if(type==="square") ctx.fillRect(x,y,size,size);
-
-  if(type==="circle"){
-    ctx.beginPath();
-    ctx.arc(x,y,size,0,Math.PI*2);
-    ctx.fill();
-  }
-
-  if(type==="spray"){
-    for(let i=0;i<10;i++){
-      ctx.fillRect(x+Math.random()*size,y+Math.random()*size,1,1);
-    }
-  }
-}
-
-// DİĞER OYUNCU
-onChildAdded(ref(db,"rooms"),snap=>{
-  const room=snap.val();
-});
+onChildAdded(ref(db,"rooms"),()=>{});
 
 // CHAT
 window.sendMsg=()=>{
-  if(!roomId) return;
-
   const text=document.getElementById("msg").value;
 
   push(ref(db,"rooms/"+roomId+"/chat"),{
@@ -245,31 +186,30 @@ window.sendMsg=()=>{
   });
 };
 
-// MESAJ
 onChildAdded(ref(db,"rooms/"+roomId+"/chat"),snap=>{
   const d=snap.val();
 
   const div=document.createElement("div");
 
-  div.innerHTML=`
-    <b>${d.user}</b>: ${d.text}
-    <div class="bubble">
-      ${d.text}
-      <span class="closeBtn" onclick="this.parentElement.remove()">x</span>
-    </div>
-  `;
+  div.innerHTML=`${d.user}: ${d.text}
+  <div class="bubble">${d.text}</div>`;
 
   document.getElementById("messages").appendChild(div);
 });
 
-// Menü
-window.toggleBrush=()=>{
-  const m=document.getElementById("brushMenu");
-  m.style.display=m.style.display==="block"?"none":"block";
-};
+// 🎤 VOICE CHAT (basit)
+let stream;
 
-// başlat
-document.getElementById("login").style.display="block";
+async function startVoice(){
+  stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+
+  const audio=document.createElement("audio");
+  audio.srcObject=stream;
+  audio.autoplay=true;
+}
+
+// START
+show("login");
 
 </script>
 </body>
