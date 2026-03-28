@@ -2,17 +2,32 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Multiplayer Paint</title>
+<title>PRO Paint</title>
+
 <style>
 body { margin:0; font-family:Arial; background:#111; color:white; }
-#login, #lobby, #game { display:none; }
-input, button { padding:10px; margin:5px; }
 
-#users div {
+#login, #lobby, #game { display:none; }
+
+.user {
+  display:flex;
+  align-items:center;
   padding:10px;
   border-bottom:1px solid #333;
   cursor:pointer;
 }
+
+.user img {
+  width:40px; height:40px; border-radius:50%; margin-right:10px;
+}
+
+canvas { background:#fff; }
+
+#toolbar {
+  position:absolute; left:0; top:0; background:#222; padding:10px;
+}
+
+#brushMenu { display:none; }
 
 #chat {
   position:fixed;
@@ -21,18 +36,9 @@ input, button { padding:10px; margin:5px; }
   background:#222;
 }
 
-#messages {
-  height:150px;
-  overflow:auto;
-}
-
-.msg {
-  padding:5px;
-}
-
 .bubble {
   position:absolute;
-  top:-30px;
+  top:-25px;
   left:0;
   background:#fff;
   color:#000;
@@ -40,35 +46,17 @@ input, button { padding:10px; margin:5px; }
   border-radius:10px;
 }
 
-.closeBtn {
-  margin-left:5px;
-  cursor:pointer;
-  color:red;
-}
-
-#toolbar {
-  position:absolute;
-  left:0;
-  top:0;
-  background:#222;
-  padding:10px;
-}
-
-#brushMenu {
-  display:none;
-}
-
-canvas {
-  background:#fff;
-}
+.closeBtn { cursor:pointer; color:red; margin-left:5px; }
 </style>
 </head>
+
 <body>
 
 <div id="login">
-  <h2>Kullanıcı Adı</h2>
-  <input id="username">
-  <button onclick="enter()">Giriş</button>
+  <h2>Profil</h2>
+  <input id="username" placeholder="Ad">
+  <input type="file" id="photo">
+  <button onclick="enter()">Gir</button>
 </div>
 
 <div id="lobby">
@@ -83,7 +71,12 @@ canvas {
     <button onclick="toggleBrush()">></button>
     <div id="brushMenu">
       <input type="color" id="color">
-      <input type="range" id="size" min="1" max="20">
+      <input type="range" id="size" min="1" max="30">
+      <select id="brushType">
+        <option value="square">Kare</option>
+        <option value="circle">Yuvarlak</option>
+        <option value="spray">Spray</option>
+      </select>
     </div>
   </div>
 </div>
@@ -96,129 +89,170 @@ canvas {
 
 <script type="module">
 
-// 🔥 Firebase kur
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, push, onChildAdded, onValue } 
+import { getDatabase, ref, set, push, onValue, onChildAdded, remove }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "BURAYA",
-  authDomain: "BURAYA",
-  databaseURL: "BURAYA",
-  projectId: "BURAYA"
+  apiKey: "AIzaSyBVMvgD3u-UT5dAk72pXqLub05qNPjqPW8",
+  authDomain: "dsohbet.firebaseapp.com",
+  databaseURL: "https://dsohbet-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "dsohbet",
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let username = "";
 let myId = Math.random().toString(36).substr(2,9);
+let username="", photo="", roomId=null;
 
-// Giriş
-window.enter = () => {
-  username = document.getElementById("username").value;
-  document.getElementById("login").style.display="none";
-  document.getElementById("lobby").style.display="block";
+// GİRİŞ
+window.enter=()=>{
+  username=document.getElementById("username").value;
+  const file=document.getElementById("photo").files[0];
 
-  set(ref(db,"users/"+myId), {
-    name: username
-  });
+  const r=new FileReader();
+  r.onload=e=>{
+    photo=e.target.result;
+
+    set(ref(db,"users/"+myId),{
+      name:username, photo:photo, last:Date.now()
+    });
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("lobby").style.display="block";
+  };
+
+  if(file) r.readAsDataURL(file);
 };
 
-// Kullanıcı listesi
-onValue(ref(db,"users"), snap => {
-  const users = snap.val();
-  const div = document.getElementById("users");
+// AFK temizleme
+setInterval(()=>{
+  onValue(ref(db,"users"),snap=>{
+    const u=snap.val();
+    for(let id in u){
+      if(Date.now()-u[id].last>20000){
+        remove(ref(db,"users/"+id));
+      }
+    }
+  });
+},10000);
+
+// LOBBY
+onValue(ref(db,"users"),snap=>{
+  const users=snap.val();
+  const div=document.getElementById("users");
   div.innerHTML="";
 
   for(let id in users){
     if(id===myId) continue;
 
-    const el = document.createElement("div");
-    el.innerText = users[id].name;
+    const u=users[id];
 
-    el.onclick = () => {
-      sendInvite(id);
+    const el=document.createElement("div");
+    el.className="user";
+
+    el.innerHTML=`
+      <img src="${u.photo}">
+      <span>${u.name}</span>
+    `;
+
+    el.onclick=()=>{
+      if(confirm(u.name+" davet edilsin mi?")){
+        set(ref(db,"invites/"+id),{
+          from:myId, name:username, photo:photo
+        });
+      }
     };
 
     div.appendChild(el);
   }
 });
 
-// Davet
-function sendInvite(id){
-  set(ref(db,"invites/"+id), {
-    from: myId,
-    name: username
-  });
-}
-
-// Davet dinleme
-onValue(ref(db,"invites/"+myId), snap => {
-  const inv = snap.val();
+// DAVET ALMA
+onValue(ref(db,"invites/"+myId),snap=>{
+  const inv=snap.val();
   if(!inv) return;
 
   if(confirm(inv.name+" seni davet etti")){
+    roomId=Math.random().toString(36);
+    set(ref(db,"rooms/"+roomId+"/players/"+myId),true);
+    set(ref(db,"rooms/"+roomId+"/players/"+inv.from),true);
+
     startGame();
   }
 });
 
-// Oyunu başlat
+// OYUN
 function startGame(){
   document.getElementById("lobby").style.display="none";
   document.getElementById("game").style.display="block";
 }
 
-// 🎨 Canvas
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
+// CANVAS
+const c=document.getElementById("c");
+const ctx=c.getContext("2d");
 
 let drawing=false;
 
-canvas.onmousedown=()=>drawing=true;
-canvas.onmouseup=()=>drawing=false;
+c.onmousedown=()=>drawing=true;
+c.onmouseup=()=>drawing=false;
 
-canvas.onmousemove=(e)=>{
-  if(!drawing) return;
+c.onmousemove=e=>{
+  if(!drawing || !roomId) return;
 
-  const x=e.offsetX;
-  const y=e.offsetY;
+  const x=e.offsetX, y=e.offsetY;
+  const color=document.getElementById("color").value||"#000";
+  const size=document.getElementById("size").value||5;
+  const type=document.getElementById("brushType").value;
 
-  const color=document.getElementById("color").value || "#000";
-  const size=document.getElementById("size").value || 5;
+  draw(x,y,color,size,type);
 
-  ctx.fillStyle=color;
-  ctx.fillRect(x,y,size,size);
-
-  push(ref(db,"draw"),{x,y,color,size});
+  push(ref(db,"rooms/"+roomId+"/draw"),{x,y,color,size,type});
 };
 
-// Diğer oyuncular
-onChildAdded(ref(db,"draw"), snap=>{
-  const d=snap.val();
-  ctx.fillStyle=d.color;
-  ctx.fillRect(d.x,d.y,d.size,d.size);
+function draw(x,y,color,size,type){
+  ctx.fillStyle=color;
+
+  if(type==="square") ctx.fillRect(x,y,size,size);
+
+  if(type==="circle"){
+    ctx.beginPath();
+    ctx.arc(x,y,size,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  if(type==="spray"){
+    for(let i=0;i<10;i++){
+      ctx.fillRect(x+Math.random()*size,y+Math.random()*size,1,1);
+    }
+  }
+}
+
+// DİĞER OYUNCU
+onChildAdded(ref(db,"rooms"),snap=>{
+  const room=snap.val();
 });
 
-// Chat
+// CHAT
 window.sendMsg=()=>{
+  if(!roomId) return;
+
   const text=document.getElementById("msg").value;
 
-  push(ref(db,"chat"),{
-    user:username,
-    text:text
+  push(ref(db,"rooms/"+roomId+"/chat"),{
+    user:username, text:text
   });
 };
 
-// Mesaj dinleme
-onChildAdded(ref(db,"chat"), snap=>{
+// MESAJ
+onChildAdded(ref(db,"rooms/"+roomId+"/chat"),snap=>{
   const d=snap.val();
 
   const div=document.createElement("div");
-  div.className="msg";
 
   div.innerHTML=`
-    <b>${d.user}:</b> ${d.text}
+    <b>${d.user}</b>: ${d.text}
     <div class="bubble">
       ${d.text}
       <span class="closeBtn" onclick="this.parentElement.remove()">x</span>
@@ -228,13 +262,13 @@ onChildAdded(ref(db,"chat"), snap=>{
   document.getElementById("messages").appendChild(div);
 });
 
-// Brush menü
+// Menü
 window.toggleBrush=()=>{
   const m=document.getElementById("brushMenu");
-  m.style.display = m.style.display==="block" ? "none":"block";
+  m.style.display=m.style.display==="block"?"none":"block";
 };
 
-// Başlat
+// başlat
 document.getElementById("login").style.display="block";
 
 </script>
