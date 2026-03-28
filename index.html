@@ -2,15 +2,15 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Multiplayer paint sjkicem sanki isim gucum yok</title>
+<title>Paint deneme #4</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 .hidden{display:none;}
 .type-effect{overflow:hidden;border-right:.15em solid #16a34a;white-space:nowrap;animation:typing 2s steps(20,end),blink .75s step-end infinite;}
 @keyframes typing{from{width:0}to{width:100%}}
 @keyframes blink{50%{border-color:transparent}}
-#loginPage,#lobbyPage,#drawPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 button{padding:10px;border-radius:10px;background:#1e293b;color:white;cursor:pointer;margin:5px;}
+#loginPage,#lobbyPage,#drawPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 #sidebar{width:220px;background:#020617;padding:10px;position:absolute;top:0;left:0;height:100%;overflow:auto;}
 .user{display:flex;align-items:center;padding:8px;border-radius:10px;margin-bottom:5px;cursor:pointer;}
 .user img{width:35px;height:35px;border-radius:50%;margin-right:10px;}
@@ -29,17 +29,20 @@ canvas{background:white;border-radius:10px;}
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- SAYFA 1: LOGIN -->
 <div id="loginPage">
   <h1 class="type-effect">Hoşgeldin!</h1>
   <input type="text" placeholder="Kullanıcı adınız" id="username"/>
   <input type="file" id="avatarUpload"/>
-  <button id="enterLobby">Başla</button>
+  <button id="enterLobby">Lobby'ye Gir</button>
 </div>
 
-<!-- LOBBY -->
+<!-- SAYFA 2: LOBBY -->
 <div id="lobbyPage" class="hidden">
-  <div id="sidebar"><h3>Oyuncular</h3><div id="users"></div></div>
+  <div id="sidebar">
+    <h3>Oyuncular</h3>
+    <div id="users"></div>
+  </div>
   <div id="invitePopup" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:10px;">
     <p>Bu kişi sizinle resim çizmek istiyor</p>
     <button id="acceptInvite">Kabul Et</button>
@@ -48,7 +51,7 @@ canvas{background:white;border-radius:10px;}
   <button id="startDraw" style="position:absolute;bottom:20px;right:20px;">Çizime Başla</button>
 </div>
 
-<!-- DRAW PAGE -->
+<!-- SAYFA 3: ÇİZİM -->
 <div id="drawPage" class="hidden" style="flex:1;display:flex;flex-direction:column;">
   <div id="canvasBox">
     <canvas id="c" width="1200" height="700"></canvas>
@@ -106,19 +109,17 @@ let myId=Math.random().toString(36).substr(2,9);
 let username="";
 let avatarURL="";
 
-// LOGIN PAGE
+// SAYFA 1 LOGIN
 document.getElementById("enterLobby").onclick=()=>{
   username=document.getElementById("username").value||("User"+Math.floor(Math.random()*1000));
   const file=document.getElementById("avatarUpload").files[0];
-  if(file){
-    avatarURL=URL.createObjectURL(file);
-  } else avatarURL="https://i.pravatar.cc/40?u="+myId;
+  avatarURL=file?URL.createObjectURL(file):"https://i.pravatar.cc/40?u="+myId;
   set(ref(db,"users/"+myId),{name:username,avatar:avatarURL});
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("lobbyPage").classList.remove("hidden");
 };
 
-// LOBBY USERS
+// SAYFA 2 LOBBY
 onValue(ref(db,"users"),snap=>{
   const users=snap.val(); 
   const div=document.getElementById("users"); div.innerHTML="";
@@ -134,9 +135,7 @@ onValue(ref(db,"users"),snap=>{
 });
 
 // INVITE
-function inviteUser(id){
-  set(ref(db,"invites/"+id),{from:myId});
-}
+function inviteUser(id){ set(ref(db,"invites/"+id),{from:myId}); }
 onChildAdded(ref(db,"invites/"+myId),snap=>{
   const data=snap.val();
   document.getElementById("invitePopup").classList.remove("hidden");
@@ -151,26 +150,33 @@ onChildAdded(ref(db,"invites/"+myId),snap=>{
 
 // START DRAW
 document.getElementById("startDraw").onclick=()=>startDraw([myId]);
-
 function startDraw(participants){
   document.getElementById("lobbyPage").classList.add("hidden");
   document.getElementById("drawPage").classList.remove("hidden");
 }
 
-// CANVAS
+// SAYFA 3 DRAW
 const c=document.getElementById("c"),ctx=c.getContext("2d");
 let drawing=false,undoStack=[],redoStack=[],brush={color:"#000",size:5,alpha:1,type:"round"};
-["brushColor","brushSize","brushAlpha","brushType"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{brush.color=document.getElementById("brushColor").value;brush.size=document.getElementById("brushSize").value;brush.alpha=document.getElementById("brushAlpha").value;brush.type=document.getElementById("brushType").value;}));
+["brushColor","brushSize","brushAlpha","brushType"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
+  brush.color=document.getElementById("brushColor").value;
+  brush.size=document.getElementById("brushSize").value;
+  brush.alpha=document.getElementById("brushAlpha").value;
+  brush.type=document.getElementById("brushType").value;
+}));
 document.getElementById("undoBtn").onclick=()=>{if(undoStack.length>0){redoStack.push(c.toDataURL());let img=new Image();img.src=undoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
 document.getElementById("redoBtn").onclick=()=>{if(redoStack.length>0){undoStack.push(c.toDataURL());let img=new Image();img.src=redoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
-
 c.onmousedown=e=>{drawing=true;undoStack.push(c.toDataURL());};
 c.onmouseup=e=>drawing=false;
-c.onmousemove=e=>{if(!drawing)return;ctx.globalAlpha=brush.alpha;ctx.fillStyle=brush.color;ctx.strokeStyle=brush.color;ctx.lineWidth=brush.size;if(brush.type==="round"){ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();} else if(brush.type==="square"){ctx.fillRect(e.offsetX-brush.size/2,e.offsetY-brush.size/2,brush.size,brush.size);} else if(brush.type==="line"){ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY);ctx.lineTo(e.offsetX+1,e.offsetY+1);ctx.stroke();} else if(brush.type==="glow"){ctx.shadowColor=brush.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;} else if(brush.type==="neon"){ctx.shadowColor=brush.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;} push(ref(db,"draw"),{x:e.offsetX,y:e.offsetY,brush});};
+c.onmousemove=e=>{if(!drawing)return;ctx.globalAlpha=brush.alpha;ctx.fillStyle=brush.color;ctx.strokeStyle=brush.color;ctx.lineWidth=brush.size;
+if(brush.type==="round"){ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();}
+else if(brush.type==="square"){ctx.fillRect(e.offsetX-brush.size/2,e.offsetY-brush.size/2,brush.size,brush.size);}
+else if(brush.type==="line"){ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY);ctx.lineTo(e.offsetX+1,e.offsetY+1);ctx.stroke();}
+else if(brush.type==="glow"){ctx.shadowColor=brush.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+else if(brush.type==="neon"){ctx.shadowColor=brush.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+push(ref(db,"draw"),{x:e.offsetX,y:e.offsetY,brush});};
 
-onChildAdded(ref(db,"draw"),snap=>{const d=snap.val();ctx.globalAlpha=d.brush.alpha;ctx.fillStyle=d.brush.color;ctx.strokeStyle=d.brush.color;ctx.lineWidth=d.brush.size;if(d.brush.type==="round"){ctx.beginPath();ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);ctx.fill();}else if(d.brush.type==="square"){ctx.fillRect(d.x-d.brush.size/2,d.y-d.brush.size/2,d.brush.size,d.brush.size);}else if(d.brush.type==="line"){ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+1,d.y+1);ctx.stroke();}else if(d.brush.type==="glow"){ctx.shadowColor=d.brush.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}else if(d.brush.type==="neon"){ctx.shadowColor=d.brush.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}});
-
-// SVG Şablonlar
+// SVG ŞABLON
 document.getElementById("starBrush").onclick=()=>{
   const steps=[{x:100,y:100},{x:120,y:150},{x:150,y:120}]; steps.forEach((p,i)=>setTimeout(()=>{ctx.fillStyle="gold";ctx.fillRect(p.x,p.y,10,10);},i*100));
 };
@@ -191,6 +197,7 @@ document.getElementById("micBtn").onclick=async()=>{
   if(!micOn){stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>pc.addTrack(t,stream));micOn=true;document.getElementById("micBtn").classList.add("active");} 
   else{stream.getTracks()[0].enabled=false;micOn=false;document.getElementById("micBtn").classList.remove("active");}};
 setInterval(()=>{if(micOn){document.getElementById("user-"+myId)?.classList.add("talkingGlow");}else{document.getElementById("user-"+myId)?.classList.remove("talkingGlow");}},100);
+
 </script>
 
 </body>
