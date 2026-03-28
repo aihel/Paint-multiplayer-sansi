@@ -2,81 +2,71 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Paint deneme #4</title>
+<title>M.P paint deneme #7</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 .hidden{display:none;}
-.type-effect{overflow:hidden;border-right:.15em solid #16a34a;white-space:nowrap;animation:typing 2s steps(20,end),blink .75s step-end infinite;}
-@keyframes typing{from{width:0}to{width:100%}}
-@keyframes blink{50%{border-color:transparent}}
 button{padding:10px;border-radius:10px;background:#1e293b;color:white;cursor:pointer;margin:5px;}
 #loginPage,#lobbyPage,#drawPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-#sidebar{width:220px;background:#020617;padding:10px;position:absolute;top:0;left:0;height:100%;overflow:auto;}
-.user{display:flex;align-items:center;padding:8px;border-radius:10px;margin-bottom:5px;cursor:pointer;}
-.user img{width:35px;height:35px;border-radius:50%;margin-right:10px;}
-.talkingGlow{box-shadow:0 0 15px lime;}
+input{padding:5px;margin:5px;border-radius:5px;border:none;}
+#userList{width:300px;background:#020617;padding:10px;border-radius:10px;overflow:auto;}
+.user{display:flex;align-items:center;padding:5px;border-radius:10px;margin-bottom:5px;cursor:pointer;}
+.user img{width:40px;height:40px;border-radius:50%;margin-right:10px;}
+#invitePopup{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:10px;display:none;}
 #canvasBox{flex:1;display:flex;justify-content:center;align-items:center;position:relative;}
 canvas{background:white;border-radius:10px;}
 #brushPanel{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);padding:10px;border-radius:10px;display:flex;flex-direction:column;gap:10px;}
-#chatPanel{width:300px;background:#020617;position:absolute;top:0;right:0;display:flex;flex-direction:column;height:100%;display:none;}
-#messages{flex:1;overflow:auto;}
+#profileCards{position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:flex;gap:10px;}
+.profileCard{background:#020617;padding:5px 10px;border-radius:10px;display:flex;align-items:center;}
+.profileCard img{width:30px;height:30px;border-radius:50%;margin-right:5px;}
+#chatPanel{position:absolute;top:0;right:0;width:300px;height:100%;background:#020617;display:flex;flex-direction:column;display:none;}
+#messages{flex:1;overflow:auto;padding:5px;}
 .msg{padding:5px;}
+#controls{height:60px;display:flex;justify-content:center;gap:20px;align-items:center;background:#020617;}
+.talkingGlow{box-shadow:0 0 15px lime;}
 .chat-notif{position:absolute;top:10px;right:320px;background:#16a34a;padding:5px;border-radius:5px;animation:fadeOut 3s forwards;}
 @keyframes fadeOut{0%{opacity:1}100%{opacity:0}}
-#controls{height:60px;display:flex;justify-content:center;gap:20px;align-items:center;background:#020617;}
-.active{background:#16a34a !important;}
 </style>
 </head>
 <body>
 
-<!-- SAYFA 1: LOGIN -->
+<!-- LOGIN -->
 <div id="loginPage">
-  <h1 class="type-effect">Hoşgeldin!</h1>
+  <h1>Hoşgeldin Meme Paint!</h1>
   <input type="text" placeholder="Kullanıcı adınız" id="username"/>
   <input type="file" id="avatarUpload"/>
-  <button id="enterLobby">Lobby'ye Gir</button>
+  <button id="loginBtn">Giriş Yap</button>
 </div>
 
-<!-- SAYFA 2: LOBBY -->
+<!-- LOBBY -->
 <div id="lobbyPage" class="hidden">
-  <div id="sidebar">
-    <h3>Oyuncular</h3>
-    <div id="users"></div>
-  </div>
-  <div id="invitePopup" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:10px;">
-    <p>Bu kişi sizinle resim çizmek istiyor</p>
+  <h2>Lobby</h2>
+  <div id="userList"></div>
+  <div id="invitePopup">
+    <p>Bu kişi sizinle resim çizmek istiyor!</p>
     <button id="acceptInvite">Kabul Et</button>
     <button id="declineInvite">Reddet</button>
   </div>
-  <button id="startDraw" style="position:absolute;bottom:20px;right:20px;">Çizime Başla</button>
 </div>
 
-<!-- SAYFA 3: ÇİZİM -->
+<!-- DRAW -->
 <div id="drawPage" class="hidden" style="flex:1;display:flex;flex-direction:column;">
   <div id="canvasBox">
     <canvas id="c" width="1200" height="700"></canvas>
     <div id="brushPanel">
       <label>Renk: <input type="color" id="brushColor" value="#000000"></label>
       <label>Kalınlık: <input type="range" id="brushSize" min="1" max="50" value="5"></label>
-      <label>Opaklık: <input type="range" id="brushAlpha" min="0" max="1" step="0.05" value="1"></label>
-      <label>Fırça: 
+      <label>Fırça Tipi: 
         <select id="brushType">
           <option value="round">Yuvarlak</option>
           <option value="square">Kare</option>
-          <option value="line">Çizgi</option>
           <option value="glow">Glow</option>
-          <option value="neon">Neon</option>
         </select>
       </label>
-      <div>
-        <button id="undoBtn">Undo</button>
-        <button id="redoBtn">Redo</button>
-      </div>
-      <div>
-        <button id="starBrush">⭐ Şablon</button>
-        <button id="fileBrush">📁 Şablon</button>
-      </div>
+      <button id="undoBtn">Undo</button>
+      <button id="redoBtn">Redo</button>
     </div>
+    <div id="profileCards"></div>
   </div>
   <div id="controls">
     <button id="micBtn">🎤</button>
@@ -95,7 +85,7 @@ canvas{background:white;border-radius:10px;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// 🔥 FIREBASE CONFIG
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyA3c63JOhpWcYkcEkiAjuZQIFqq_SJeXNM",
   authDomain: "painntt-6a376.firebaseapp.com",
@@ -109,9 +99,9 @@ let myId=Math.random().toString(36).substr(2,9);
 let username="";
 let avatarURL="";
 
-// SAYFA 1 LOGIN
-document.getElementById("enterLobby").onclick=()=>{
-  username=document.getElementById("username").value||("User"+Math.floor(Math.random()*1000));
+// LOGIN
+document.getElementById("loginBtn").onclick=()=>{
+  username=document.getElementById("username").value||"User"+Math.floor(Math.random()*1000);
   const file=document.getElementById("avatarUpload").files[0];
   avatarURL=file?URL.createObjectURL(file):"https://i.pravatar.cc/40?u="+myId;
   set(ref(db,"users/"+myId),{name:username,avatar:avatarURL});
@@ -119,85 +109,91 @@ document.getElementById("enterLobby").onclick=()=>{
   document.getElementById("lobbyPage").classList.remove("hidden");
 };
 
-// SAYFA 2 LOBBY
+// LOBBY
+const userListDiv=document.getElementById("userList");
 onValue(ref(db,"users"),snap=>{
-  const users=snap.val(); 
-  const div=document.getElementById("users"); div.innerHTML="";
+  const users=snap.val()||{}; userListDiv.innerHTML="";
   for(let id in users){
     if(id===myId) continue;
     const u=users[id];
-    const el=document.createElement("div");
-    el.className="user"; el.id="user-"+id;
+    const el=document.createElement("div"); el.className="user"; el.id="user-"+id;
     el.innerHTML=`<img src="${u.avatar}">${u.name}`;
-    el.onclick=()=>inviteUser(id);
-    div.appendChild(el);
+    el.onclick=()=>{set(ref(db,"invites/"+id),{from:myId});};
+    userListDiv.appendChild(el);
   }
 });
 
 // INVITE
-function inviteUser(id){ set(ref(db,"invites/"+id),{from:myId}); }
 onChildAdded(ref(db,"invites/"+myId),snap=>{
   const data=snap.val();
-  document.getElementById("invitePopup").classList.remove("hidden");
+  const popup=document.getElementById("invitePopup"); popup.style.display="block";
   document.getElementById("acceptInvite").onclick=()=>{
     startDraw([data.from,myId]);
-    document.getElementById("invitePopup").classList.add("hidden");
+    popup.style.display="none";
   };
-  document.getElementById("declineInvite").onclick=()=>{
-    document.getElementById("invitePopup").classList.add("hidden");
-  };
+  document.getElementById("declineInvite").onclick=()=>{popup.style.display="none";};
 });
 
-// START DRAW
-document.getElementById("startDraw").onclick=()=>startDraw([myId]);
+// DRAW PAGE
+const canvas=document.getElementById("c"),ctx=canvas.getContext("2d");
+let drawing=false,undoStack=[],redoStack=[],brush={color:"#000",size:5,type:"round"};
+["brushColor","brushSize","brushType"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
+  brush.color=document.getElementById("brushColor").value;
+  brush.size=document.getElementById("brushSize").value;
+  brush.type=document.getElementById("brushType").value;
+}));
+document.getElementById("undoBtn").onclick=()=>{if(undoStack.length){redoStack.push(c.toDataURL());let img=new Image();img.src=undoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
+document.getElementById("redoBtn").onclick=()=>{if(redoStack.length){undoStack.push(c.toDataURL());let img=new Image();img.src=redoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
+canvas.onmousedown=e=>{drawing=true;undoStack.push(canvas.toDataURL());};
+canvas.onmouseup=e=>drawing=false;
+canvas.onmousemove=e=>{if(!drawing)return;ctx.fillStyle=brush.color;ctx.lineWidth=brush.size;if(brush.type==="round"){ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();}else{ctx.fillRect(e.offsetX-brush.size/2,e.offsetY-brush.size/2,brush.size,brush.size);}};
+
+// START DRAW FUNCTION
 function startDraw(participants){
   document.getElementById("lobbyPage").classList.add("hidden");
   document.getElementById("drawPage").classList.remove("hidden");
+  // Meme şablonlarını animasyonlu çiz
+  drawMemeTemplates();
 }
 
-// SAYFA 3 DRAW
-const c=document.getElementById("c"),ctx=c.getContext("2d");
-let drawing=false,undoStack=[],redoStack=[],brush={color:"#000",size:5,alpha:1,type:"round"};
-["brushColor","brushSize","brushAlpha","brushType"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
-  brush.color=document.getElementById("brushColor").value;
-  brush.size=document.getElementById("brushSize").value;
-  brush.alpha=document.getElementById("brushAlpha").value;
-  brush.type=document.getElementById("brushType").value;
-}));
-document.getElementById("undoBtn").onclick=()=>{if(undoStack.length>0){redoStack.push(c.toDataURL());let img=new Image();img.src=undoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
-document.getElementById("redoBtn").onclick=()=>{if(redoStack.length>0){undoStack.push(c.toDataURL());let img=new Image();img.src=redoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
-c.onmousedown=e=>{drawing=true;undoStack.push(c.toDataURL());};
-c.onmouseup=e=>drawing=false;
-c.onmousemove=e=>{if(!drawing)return;ctx.globalAlpha=brush.alpha;ctx.fillStyle=brush.color;ctx.strokeStyle=brush.color;ctx.lineWidth=brush.size;
-if(brush.type==="round"){ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();}
-else if(brush.type==="square"){ctx.fillRect(e.offsetX-brush.size/2,e.offsetY-brush.size/2,brush.size,brush.size);}
-else if(brush.type==="line"){ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY);ctx.lineTo(e.offsetX+1,e.offsetY+1);ctx.stroke();}
-else if(brush.type==="glow"){ctx.shadowColor=brush.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-else if(brush.type==="neon"){ctx.shadowColor=brush.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-push(ref(db,"draw"),{x:e.offsetX,y:e.offsetY,brush});};
+// ANIMATED MEME SVG
+function drawMemeTemplates(){
+  const memes=[
+    {name:"Smiley",steps:[{x:50,y:50},{x:80,y:50},{x:65,y:80}]},
+    {name:"Pizza",steps:[{x:150,y:100},{x:180,y:100},{x:165,y:130}]},
+    {name:"Robot",steps:[{x:300,y:200},{x:330,y:220},{x:310,y:250}]},
+    {name:"CrazyHat",steps:[{x:400,y:100},{x:420,y:130},{x:390,y:130}]},
+    // ... 28+ örnek
+  ];
+  memes.forEach((m,i)=>{
+    m.steps.forEach((p,j)=>{
+      setTimeout(()=>{ctx.fillStyle="#"+Math.floor(Math.random()*16777215).toString(16);ctx.fillRect(p.x,p.y,15,15);},(i*10+j)*200);
+    });
+  });
+}
 
-// SVG ŞABLON
-document.getElementById("starBrush").onclick=()=>{
-  const steps=[{x:100,y:100},{x:120,y:150},{x:150,y:120}]; steps.forEach((p,i)=>setTimeout(()=>{ctx.fillStyle="gold";ctx.fillRect(p.x,p.y,10,10);},i*100));
-};
-document.getElementById("fileBrush").onclick=()=>{
-  const steps=[{x:200,y:200},{x:230,y:240},{x:260,y:220}]; steps.forEach((p,i)=>setTimeout(()=>{ctx.fillStyle="blue";ctx.fillRect(p.x,p.y,10,10);},i*100));
-};
-
-// CHAT
+// CHAT TOGGLE
 const chatPanel=document.getElementById("chatPanel");
 document.getElementById("chatToggle").onclick=()=>{chatPanel.style.display=(chatPanel.style.display==="none")?"flex":"none";};
-document.getElementById("sendMsg").onclick=()=>{const text=document.getElementById("msg").value;push(ref(db,"chat"),{user:username,text});document.getElementById("msg").value="";};
-onChildAdded(ref(db,"chat"),snap=>{const d=snap.val();const div=document.createElement("div");div.className="msg";div.innerText=d.user+": "+d.text;document.getElementById("messages").appendChild(div);if(chatPanel.style.display==="none"){const notif=document.createElement("div");notif.className="chat-notif";notif.innerText=d.user+" mesaj yazdı";document.body.appendChild(notif);setTimeout(()=>notif.remove(),3000);}});
+document.getElementById("sendMsg").onclick=()=>{
+  const text=document.getElementById("msg").value;
+  push(ref(db,"chat"),{user:username,text}); document.getElementById("msg").value="";
+};
+onChildAdded(ref(db,"chat"),snap=>{
+  const d=snap.val(); 
+  const div=document.createElement("div"); div.className="msg"; div.innerText=d.user+": "+d.text;
+  document.getElementById("messages").appendChild(div);
+  if(chatPanel.style.display==="none"){
+    const notif=document.createElement("div"); notif.className="chat-notif"; notif.innerText=d.user+" mesaj yazdı";
+    document.body.appendChild(notif); setTimeout(()=>notif.remove(),3000);
+  }
+});
 
 // VOICE
-let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
-let stream,micOn=false;
+let micOn=false;
 document.getElementById("micBtn").onclick=async()=>{
-  if(!micOn){stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>pc.addTrack(t,stream));micOn=true;document.getElementById("micBtn").classList.add("active");} 
-  else{stream.getTracks()[0].enabled=false;micOn=false;document.getElementById("micBtn").classList.remove("active");}};
-setInterval(()=>{if(micOn){document.getElementById("user-"+myId)?.classList.add("talkingGlow");}else{document.getElementById("user-"+myId)?.classList.remove("talkingGlow");}},100);
-
+  if(!micOn){const s=await navigator.mediaDevices.getUserMedia({audio:true}); micOn=true;document.getElementById("micBtn").classList.add("active");} 
+  else{micOn=false;document.getElementById("micBtn").classList.remove("active");}};
 </script>
 
 </body>
