@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Multiplayer Paint</title>
+<style>
+body { margin:0; font-family:Arial; background:#111; color:white; }
+#login, #lobby, #game { display:none; }
+input, button { padding:10px; margin:5px; }
+
+#users div {
+  padding:10px;
+  border-bottom:1px solid #333;
+  cursor:pointer;
+}
+
+#chat {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#222;
+}
+
+#messages {
+  height:150px;
+  overflow:auto;
+}
+
+.msg {
+  padding:5px;
+}
+
+.bubble {
+  position:absolute;
+  top:-30px;
+  left:0;
+  background:#fff;
+  color:#000;
+  padding:5px;
+  border-radius:10px;
+}
+
+.closeBtn {
+  margin-left:5px;
+  cursor:pointer;
+  color:red;
+}
+
+#toolbar {
+  position:absolute;
+  left:0;
+  top:0;
+  background:#222;
+  padding:10px;
+}
+
+#brushMenu {
+  display:none;
+}
+
+canvas {
+  background:#fff;
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>Kullanıcı Adı</h2>
+  <input id="username">
+  <button onclick="enter()">Giriş</button>
+</div>
+
+<div id="lobby">
+  <h2>Lobby</h2>
+  <div id="users"></div>
+</div>
+
+<div id="game">
+  <canvas id="c" width="800" height="500"></canvas>
+
+  <div id="toolbar">
+    <button onclick="toggleBrush()">></button>
+    <div id="brushMenu">
+      <input type="color" id="color">
+      <input type="range" id="size" min="1" max="20">
+    </div>
+  </div>
+</div>
+
+<div id="chat">
+  <div id="messages"></div>
+  <input id="msg">
+  <button onclick="sendMsg()">Gönder</button>
+</div>
+
+<script type="module">
+
+// 🔥 Firebase kur
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, push, onChildAdded, onValue } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "BURAYA",
+  authDomain: "BURAYA",
+  databaseURL: "BURAYA",
+  projectId: "BURAYA"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let username = "";
+let myId = Math.random().toString(36).substr(2,9);
+
+// Giriş
+window.enter = () => {
+  username = document.getElementById("username").value;
+  document.getElementById("login").style.display="none";
+  document.getElementById("lobby").style.display="block";
+
+  set(ref(db,"users/"+myId), {
+    name: username
+  });
+};
+
+// Kullanıcı listesi
+onValue(ref(db,"users"), snap => {
+  const users = snap.val();
+  const div = document.getElementById("users");
+  div.innerHTML="";
+
+  for(let id in users){
+    if(id===myId) continue;
+
+    const el = document.createElement("div");
+    el.innerText = users[id].name;
+
+    el.onclick = () => {
+      sendInvite(id);
+    };
+
+    div.appendChild(el);
+  }
+});
+
+// Davet
+function sendInvite(id){
+  set(ref(db,"invites/"+id), {
+    from: myId,
+    name: username
+  });
+}
+
+// Davet dinleme
+onValue(ref(db,"invites/"+myId), snap => {
+  const inv = snap.val();
+  if(!inv) return;
+
+  if(confirm(inv.name+" seni davet etti")){
+    startGame();
+  }
+});
+
+// Oyunu başlat
+function startGame(){
+  document.getElementById("lobby").style.display="none";
+  document.getElementById("game").style.display="block";
+}
+
+// 🎨 Canvas
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+let drawing=false;
+
+canvas.onmousedown=()=>drawing=true;
+canvas.onmouseup=()=>drawing=false;
+
+canvas.onmousemove=(e)=>{
+  if(!drawing) return;
+
+  const x=e.offsetX;
+  const y=e.offsetY;
+
+  const color=document.getElementById("color").value || "#000";
+  const size=document.getElementById("size").value || 5;
+
+  ctx.fillStyle=color;
+  ctx.fillRect(x,y,size,size);
+
+  push(ref(db,"draw"),{x,y,color,size});
+};
+
+// Diğer oyuncular
+onChildAdded(ref(db,"draw"), snap=>{
+  const d=snap.val();
+  ctx.fillStyle=d.color;
+  ctx.fillRect(d.x,d.y,d.size,d.size);
+});
+
+// Chat
+window.sendMsg=()=>{
+  const text=document.getElementById("msg").value;
+
+  push(ref(db,"chat"),{
+    user:username,
+    text:text
+  });
+};
+
+// Mesaj dinleme
+onChildAdded(ref(db,"chat"), snap=>{
+  const d=snap.val();
+
+  const div=document.createElement("div");
+  div.className="msg";
+
+  div.innerHTML=`
+    <b>${d.user}:</b> ${d.text}
+    <div class="bubble">
+      ${d.text}
+      <span class="closeBtn" onclick="this.parentElement.remove()">x</span>
+    </div>
+  `;
+
+  document.getElementById("messages").appendChild(div);
+});
+
+// Brush menü
+window.toggleBrush=()=>{
+  const m=document.getElementById("brushMenu");
+  m.style.display = m.style.display==="block" ? "none":"block";
+};
+
+// Başlat
+document.getElementById("login").style.display="block";
+
+</script>
+</body>
+</html>
