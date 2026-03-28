@@ -3,49 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <title>Multiplayer paint sjkicem sanki isim gucum yok</title>
-
 <style>
-body { margin:0; font-family:Arial; display:flex; height:100vh; background:#0f172a; color:white; }
-
-/* SIDEBAR */
-#sidebar { width:220px; background:#020617; padding:10px; }
-.user { display:flex; align-items:center; padding:8px; border-radius:10px; cursor:pointer; }
-.user img { width:35px; height:35px; border-radius:50%; margin-right:10px; }
-.talking { box-shadow:0 0 10px lime; }
-
-/* MAIN */
-#main { flex:1; display:flex; flex-direction:column; }
-#canvasBox { flex:1; display:flex; justify-content:center; align-items:center; position:relative; }
-canvas { background:white; border-radius:10px; }
-#brushPanel { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); padding:10px; border-radius:10px; display:flex; flex-direction:column; gap:10px; }
-
-/* CHAT */
-#chat { width:300px; background:#020617; display:flex; flex-direction:column; }
-#messages { flex:1; overflow:auto; }
-.msg { padding:5px; }
-
-/* CONTROLS */
-#controls { height:60px; display:flex; justify-content:center; gap:20px; background:#020617; align-items:center; }
-.btn { padding:10px; border-radius:10px; background:#1e293b; cursor:pointer; }
-.active { background:#16a34a !important; }
-
-input[type=color], input[type=range] { cursor:pointer; }
-
+body{margin:0;font-family:Arial;background:#0f172a;color:white;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.hidden{display:none;}
+.type-effect{overflow:hidden;border-right:.15em solid #16a34a;white-space:nowrap;animation:typing 2s steps(20,end),blink .75s step-end infinite;}
+@keyframes typing{from{width:0}to{width:100%}}
+@keyframes blink{50%{border-color:transparent}}
+#loginPage,#lobbyPage,#drawPage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+button{padding:10px;border-radius:10px;background:#1e293b;color:white;cursor:pointer;margin:5px;}
+#sidebar{width:220px;background:#020617;padding:10px;position:absolute;top:0;left:0;height:100%;overflow:auto;}
+.user{display:flex;align-items:center;padding:8px;border-radius:10px;margin-bottom:5px;cursor:pointer;}
+.user img{width:35px;height:35px;border-radius:50%;margin-right:10px;}
+.talkingGlow{box-shadow:0 0 15px lime;}
+#canvasBox{flex:1;display:flex;justify-content:center;align-items:center;position:relative;}
+canvas{background:white;border-radius:10px;}
+#brushPanel{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.5);padding:10px;border-radius:10px;display:flex;flex-direction:column;gap:10px;}
+#chatPanel{width:300px;background:#020617;position:absolute;top:0;right:0;display:flex;flex-direction:column;height:100%;display:none;}
+#messages{flex:1;overflow:auto;}
+.msg{padding:5px;}
+.chat-notif{position:absolute;top:10px;right:320px;background:#16a34a;padding:5px;border-radius:5px;animation:fadeOut 3s forwards;}
+@keyframes fadeOut{0%{opacity:1}100%{opacity:0}}
+#controls{height:60px;display:flex;justify-content:center;gap:20px;align-items:center;background:#020617;}
+.active{background:#16a34a !important;}
 </style>
 </head>
-
 <body>
 
-<!-- SIDEBAR -->
-<div id="sidebar">
-  <h3>Oyuncular</h3>
-  <div id="users"></div>
+<!-- LOGIN -->
+<div id="loginPage">
+  <h1 class="type-effect">Hoşgeldin!</h1>
+  <input type="text" placeholder="Kullanıcı adınız" id="username"/>
+  <input type="file" id="avatarUpload"/>
+  <button id="enterLobby">Başla</button>
 </div>
 
-<!-- MAIN -->
-<div id="main">
+<!-- LOBBY -->
+<div id="lobbyPage" class="hidden">
+  <div id="sidebar"><h3>Oyuncular</h3><div id="users"></div></div>
+  <div id="invitePopup" class="hidden" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:10px;">
+    <p>Bu kişi sizinle resim çizmek istiyor</p>
+    <button id="acceptInvite">Kabul Et</button>
+    <button id="declineInvite">Reddet</button>
+  </div>
+  <button id="startDraw" style="position:absolute;bottom:20px;right:20px;">Çizime Başla</button>
+</div>
+
+<!-- DRAW PAGE -->
+<div id="drawPage" class="hidden" style="flex:1;display:flex;flex-direction:column;">
   <div id="canvasBox">
-    <canvas id="c" width="800" height="500"></canvas>
+    <canvas id="c" width="1200" height="700"></canvas>
     <div id="brushPanel">
       <label>Renk: <input type="color" id="brushColor" value="#000000"></label>
       <label>Kalınlık: <input type="range" id="brushSize" min="1" max="50" value="5"></label>
@@ -55,32 +61,36 @@ input[type=color], input[type=range] { cursor:pointer; }
           <option value="round">Yuvarlak</option>
           <option value="square">Kare</option>
           <option value="line">Çizgi</option>
+          <option value="glow">Glow</option>
+          <option value="neon">Neon</option>
         </select>
       </label>
       <div>
-        <button id="undoBtn" class="btn">Undo</button>
-        <button id="redoBtn" class="btn">Redo</button>
+        <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
+      </div>
+      <div>
+        <button id="starBrush">⭐ Şablon</button>
+        <button id="fileBrush">📁 Şablon</button>
       </div>
     </div>
   </div>
-
   <div id="controls">
-    <div id="micBtn" class="btn">🎤</div>
+    <button id="micBtn">🎤</button>
+    <button id="chatToggle">Chat</button>
   </div>
 </div>
 
-<!-- CHAT -->
-<div id="chat">
+<!-- CHAT PANEL -->
+<div id="chatPanel">
   <div id="messages"></div>
   <input id="msg">
-  <button onclick="sendMsg()">Gönder</button>
+  <button id="sendMsg">Gönder</button>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, onChildAdded }
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // 🔥 FIREBASE CONFIG
 const firebaseConfig = {
@@ -88,157 +98,100 @@ const firebaseConfig = {
   authDomain: "painntt-6a376.firebaseapp.com",
   projectId: "painntt-6a376"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // USER
 let myId=Math.random().toString(36).substr(2,9);
-let username="User"+Math.floor(Math.random()*1000);
+let username="";
+let avatarURL="";
 
-set(ref(db,"users/"+myId),{name:username});
+// LOGIN PAGE
+document.getElementById("enterLobby").onclick=()=>{
+  username=document.getElementById("username").value||("User"+Math.floor(Math.random()*1000));
+  const file=document.getElementById("avatarUpload").files[0];
+  if(file){
+    avatarURL=URL.createObjectURL(file);
+  } else avatarURL="https://i.pravatar.cc/40?u="+myId;
+  set(ref(db,"users/"+myId),{name:username,avatar:avatarURL});
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("lobbyPage").classList.remove("hidden");
+};
 
+// LOBBY USERS
 onValue(ref(db,"users"),snap=>{
-  const users=snap.val();
-  const div=document.getElementById("users");
-  div.innerHTML="";
+  const users=snap.val(); 
+  const div=document.getElementById("users"); div.innerHTML="";
   for(let id in users){
+    if(id===myId) continue;
     const u=users[id];
     const el=document.createElement("div");
-    el.className="user";
-    el.id="user-"+id;
-    el.innerHTML=`<img src="https://i.pravatar.cc/40?u=${id}">${u.name}`;
+    el.className="user"; el.id="user-"+id;
+    el.innerHTML=`<img src="${u.avatar}">${u.name}`;
+    el.onclick=()=>inviteUser(id);
     div.appendChild(el);
   }
 });
 
-// 🔥 CANVAS FULL BRUSH
-const c=document.getElementById("c");
-const ctx=c.getContext("2d");
-
-let drawing=false;
-let undoStack=[];
-let redoStack=[];
-
-let brush={color:"#000", size:5, alpha:1, type:"round"};
-
-function setBrush(){
-  brush.color=document.getElementById("brushColor").value;
-  brush.size=document.getElementById("brushSize").value;
-  brush.alpha=document.getElementById("brushAlpha").value;
-  brush.type=document.getElementById("brushType").value;
+// INVITE
+function inviteUser(id){
+  set(ref(db,"invites/"+id),{from:myId});
 }
-
-["brushColor","brushSize","brushAlpha","brushType"].forEach(id=>{
-  document.getElementById(id).addEventListener("input", setBrush);
+onChildAdded(ref(db,"invites/"+myId),snap=>{
+  const data=snap.val();
+  document.getElementById("invitePopup").classList.remove("hidden");
+  document.getElementById("acceptInvite").onclick=()=>{
+    startDraw([data.from,myId]);
+    document.getElementById("invitePopup").classList.add("hidden");
+  };
+  document.getElementById("declineInvite").onclick=()=>{
+    document.getElementById("invitePopup").classList.add("hidden");
+  };
 });
 
-function saveState(){
-  undoStack.push(c.toDataURL());
-  if(undoStack.length>20) undoStack.shift();
+// START DRAW
+document.getElementById("startDraw").onclick=()=>startDraw([myId]);
+
+function startDraw(participants){
+  document.getElementById("lobbyPage").classList.add("hidden");
+  document.getElementById("drawPage").classList.remove("hidden");
 }
 
-document.getElementById("undoBtn").onclick=()=>{
-  if(undoStack.length>0){
-    redoStack.push(c.toDataURL());
-    const img=new Image();
-    img.src=undoStack.pop();
-    img.onload=()=>ctx.drawImage(img,0,0);
-  }
-};
-document.getElementById("redoBtn").onclick=()=>{
-  if(redoStack.length>0){
-    undoStack.push(c.toDataURL());
-    const img=new Image();
-    img.src=redoStack.pop();
-    img.onload=()=>ctx.drawImage(img,0,0);
-  }
-};
+// CANVAS
+const c=document.getElementById("c"),ctx=c.getContext("2d");
+let drawing=false,undoStack=[],redoStack=[],brush={color:"#000",size:5,alpha:1,type:"round"};
+["brushColor","brushSize","brushAlpha","brushType"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{brush.color=document.getElementById("brushColor").value;brush.size=document.getElementById("brushSize").value;brush.alpha=document.getElementById("brushAlpha").value;brush.type=document.getElementById("brushType").value;}));
+document.getElementById("undoBtn").onclick=()=>{if(undoStack.length>0){redoStack.push(c.toDataURL());let img=new Image();img.src=undoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
+document.getElementById("redoBtn").onclick=()=>{if(redoStack.length>0){undoStack.push(c.toDataURL());let img=new Image();img.src=redoStack.pop();img.onload=()=>ctx.drawImage(img,0,0);}};
 
-c.onmousedown=e=>{
-  drawing=true;
-  saveState();
-};
+c.onmousedown=e=>{drawing=true;undoStack.push(c.toDataURL());};
 c.onmouseup=e=>drawing=false;
+c.onmousemove=e=>{if(!drawing)return;ctx.globalAlpha=brush.alpha;ctx.fillStyle=brush.color;ctx.strokeStyle=brush.color;ctx.lineWidth=brush.size;if(brush.type==="round"){ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();} else if(brush.type==="square"){ctx.fillRect(e.offsetX-brush.size/2,e.offsetY-brush.size/2,brush.size,brush.size);} else if(brush.type==="line"){ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY);ctx.lineTo(e.offsetX+1,e.offsetY+1);ctx.stroke();} else if(brush.type==="glow"){ctx.shadowColor=brush.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;} else if(brush.type==="neon"){ctx.shadowColor=brush.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(e.offsetX,e.offsetY,brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;} push(ref(db,"draw"),{x:e.offsetX,y:e.offsetY,brush});};
 
-c.onmousemove=e=>{
-  if(!drawing) return;
-  let x=e.offsetX, y=e.offsetY;
+onChildAdded(ref(db,"draw"),snap=>{const d=snap.val();ctx.globalAlpha=d.brush.alpha;ctx.fillStyle=d.brush.color;ctx.strokeStyle=d.brush.color;ctx.lineWidth=d.brush.size;if(d.brush.type==="round"){ctx.beginPath();ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);ctx.fill();}else if(d.brush.type==="square"){ctx.fillRect(d.x-d.brush.size/2,d.y-d.brush.size/2,d.brush.size,d.brush.size);}else if(d.brush.type==="line"){ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+1,d.y+1);ctx.stroke();}else if(d.brush.type==="glow"){ctx.shadowColor=d.brush.color;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}else if(d.brush.type==="neon"){ctx.shadowColor=d.brush.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}});
 
-  ctx.globalAlpha=brush.alpha;
-  ctx.fillStyle=brush.color;
-  ctx.strokeStyle=brush.color;
-  ctx.lineWidth=brush.size;
-
-  if(brush.type==="round"){
-    ctx.beginPath();
-    ctx.arc(x,y,brush.size/2,0,Math.PI*2);
-    ctx.fill();
-  } else if(brush.type==="square"){
-    ctx.fillRect(x-brush.size/2,y-brush.size/2,brush.size,brush.size);
-  } else if(brush.type==="line"){
-    ctx.beginPath();
-    ctx.moveTo(x,y);
-    ctx.lineTo(x+1,y+1);
-    ctx.stroke();
-  }
-
-  push(ref(db,"draw"),{x,y,brush});
+// SVG Şablonlar
+document.getElementById("starBrush").onclick=()=>{
+  const steps=[{x:100,y:100},{x:120,y:150},{x:150,y:120}]; steps.forEach((p,i)=>setTimeout(()=>{ctx.fillStyle="gold";ctx.fillRect(p.x,p.y,10,10);},i*100));
+};
+document.getElementById("fileBrush").onclick=()=>{
+  const steps=[{x:200,y:200},{x:230,y:240},{x:260,y:220}]; steps.forEach((p,i)=>setTimeout(()=>{ctx.fillStyle="blue";ctx.fillRect(p.x,p.y,10,10);},i*100));
 };
 
-onChildAdded(ref(db,"draw"),snap=>{
-  const d=snap.val();
-  ctx.globalAlpha=d.brush.alpha;
-  ctx.fillStyle=d.brush.color;
-  ctx.strokeStyle=d.brush.color;
-  ctx.lineWidth=d.brush.size;
+// CHAT
+const chatPanel=document.getElementById("chatPanel");
+document.getElementById("chatToggle").onclick=()=>{chatPanel.style.display=(chatPanel.style.display==="none")?"flex":"none";};
+document.getElementById("sendMsg").onclick=()=>{const text=document.getElementById("msg").value;push(ref(db,"chat"),{user:username,text});document.getElementById("msg").value="";};
+onChildAdded(ref(db,"chat"),snap=>{const d=snap.val();const div=document.createElement("div");div.className="msg";div.innerText=d.user+": "+d.text;document.getElementById("messages").appendChild(div);if(chatPanel.style.display==="none"){const notif=document.createElement("div");notif.className="chat-notif";notif.innerText=d.user+" mesaj yazdı";document.body.appendChild(notif);setTimeout(()=>notif.remove(),3000);}});
 
-  if(d.brush.type==="round"){
-    ctx.beginPath();
-    ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);
-    ctx.fill();
-  } else if(d.brush.type==="square"){
-    ctx.fillRect(d.x-d.brush.size/2,d.y-d.brush.size/2,d.brush.size,d.brush.size);
-  } else if(d.brush.type==="line"){
-    ctx.beginPath();
-    ctx.moveTo(d.x,d.y);
-    ctx.lineTo(d.x+1,d.y+1);
-    ctx.stroke();
-  }
-});
-
-// 💬 CHAT
-window.sendMsg=()=>{
-  const text=document.getElementById("msg").value;
-  push(ref(db,"chat"),{user:username,text});
-};
-
-onChildAdded(ref(db,"chat"),snap=>{
-  const d=snap.val();
-  const div=document.createElement("div");
-  div.className="msg";
-  div.innerText=d.user+": "+d.text;
-  document.getElementById("messages").appendChild(div);
-});
-
-// 🎤 VOICE CHAT
+// VOICE
 let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
-let stream;
-let micOn=false;
-
-document.getElementById("micBtn").onclick=async ()=>{
-  if(!micOn){
-    stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-    document.getElementById("micBtn").classList.add("active");
-    micOn=true;
-  } else {
-    stream.getTracks()[0].enabled=false;
-    document.getElementById("micBtn").classList.remove("active");
-    micOn=false;
-  }
-};
-
+let stream,micOn=false;
+document.getElementById("micBtn").onclick=async()=>{
+  if(!micOn){stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>pc.addTrack(t,stream));micOn=true;document.getElementById("micBtn").classList.add("active");} 
+  else{stream.getTracks()[0].enabled=false;micOn=false;document.getElementById("micBtn").classList.remove("active");}};
+setInterval(()=>{if(micOn){document.getElementById("user-"+myId)?.classList.add("talkingGlow");}else{document.getElementById("user-"+myId)?.classList.remove("talkingGlow");}},100);
 </script>
+
 </body>
 </html>
