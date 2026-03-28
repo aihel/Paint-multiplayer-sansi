@@ -5,57 +5,71 @@
 <title>Multiplayer paint sjkicem sanki isim gucum yok</title>
 
 <style>
-body { margin:0; font-family:Arial; background:#111; color:white; }
+body { margin:0; font-family:Arial; display:flex; height:100vh; background:#0f172a; color:white; }
 
-.page { display:none; padding:20px; }
+/* SIDEBAR */
+#sidebar { width:220px; background:#020617; padding:10px; }
+.user { display:flex; align-items:center; padding:8px; border-radius:10px; cursor:pointer; }
+.user img { width:35px; height:35px; border-radius:50%; margin-right:10px; }
+.talking { box-shadow:0 0 10px lime; }
 
-.user {
-  display:flex;
-  align-items:center;
-  padding:10px;
-  border-bottom:1px solid #333;
-  cursor:pointer;
-}
+/* MAIN */
+#main { flex:1; display:flex; flex-direction:column; }
+#canvasBox { flex:1; display:flex; justify-content:center; align-items:center; position:relative; }
+canvas { background:white; border-radius:10px; }
+#brushPanel { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); padding:10px; border-radius:10px; display:flex; flex-direction:column; gap:10px; }
 
-.user img {
-  width:40px; height:40px; border-radius:50%; margin-right:10px;
-}
+/* CHAT */
+#chat { width:300px; background:#020617; display:flex; flex-direction:column; }
+#messages { flex:1; overflow:auto; }
+.msg { padding:5px; }
 
-canvas { background:#fff; }
+/* CONTROLS */
+#controls { height:60px; display:flex; justify-content:center; gap:20px; background:#020617; align-items:center; }
+.btn { padding:10px; border-radius:10px; background:#1e293b; cursor:pointer; }
+.active { background:#16a34a !important; }
 
-#chat { position:fixed; bottom:0; width:100%; background:#222; display:none; }
-
-.bubble {
-  position:absolute;
-  top:-25px;
-  left:0;
-  background:#fff;
-  color:#000;
-  padding:5px;
-  border-radius:10px;
-}
+input[type=color], input[type=range] { cursor:pointer; }
 
 </style>
 </head>
 
 <body>
 
-<div id="login" class="page">
-  <h2>Profil</h2>
-  <input id="name" placeholder="Ad">
-  <input type="file" id="photo">
-  <button onclick="login()">Gir</button>
-</div>
-
-<div id="lobby" class="page">
-  <h2>Lobby</h2>
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <h3>Oyuncular</h3>
   <div id="users"></div>
 </div>
 
-<div id="game" class="page">
-  <canvas id="c" width="800" height="500"></canvas>
+<!-- MAIN -->
+<div id="main">
+  <div id="canvasBox">
+    <canvas id="c" width="800" height="500"></canvas>
+    <div id="brushPanel">
+      <label>Renk: <input type="color" id="brushColor" value="#000000"></label>
+      <label>Kalınlık: <input type="range" id="brushSize" min="1" max="50" value="5"></label>
+      <label>Opaklık: <input type="range" id="brushAlpha" min="0" max="1" step="0.05" value="1"></label>
+      <label>Fırça: 
+        <select id="brushType">
+          <option value="round">Yuvarlak</option>
+          <option value="square">Kare</option>
+          <option value="line">Çizgi</option>
+        </select>
+      </label>
+      <div>
+        <button id="undoBtn" class="btn">Undo</button>
+        <button id="redoBtn" class="btn">Redo</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div id="micBtn" class="btn">🎤</div>
+  </div>
 </div>
 
+<!-- CHAT -->
 <div id="chat">
   <div id="messages"></div>
   <input id="msg">
@@ -65,151 +79,165 @@ canvas { background:#fff; }
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, onChildAdded, remove }
+import { getDatabase, ref, set, push, onValue, onChildAdded }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyBVMvgD3u-UT5dAk72pXqLub05qNPjqPW8",
-  authDomain: "dsohbet.firebaseapp.com",
-  databaseURL: "https://dsohbet-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "dsohbet"
+  apiKey: "AIzaSyA3c63JOhpWcYkcEkiAjuZQIFqq_SJeXNM",
+  authDomain: "painntt-6a376.firebaseapp.com",
+  projectId: "painntt-6a376"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// USER
 let myId=Math.random().toString(36).substr(2,9);
-let username="", photo="", roomId=null;
+let username="User"+Math.floor(Math.random()*1000);
 
-// SAYFA GECİS
-function show(id){
-  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
-  document.getElementById(id).style.display="block";
-}
+set(ref(db,"users/"+myId),{name:username});
 
-// LOGIN
-window.login=()=>{
-  username=document.getElementById("name").value;
-  const file=document.getElementById("photo").files[0];
-
-  const r=new FileReader();
-  r.onload=e=>{
-    photo=e.target.result;
-
-    set(ref(db,"users/"+myId),{
-      name:username, photo:photo, last:Date.now()
-    });
-
-    show("lobby");
-  };
-
-  if(file) r.readAsDataURL(file);
-};
-
-// LOBBY
 onValue(ref(db,"users"),snap=>{
   const users=snap.val();
   const div=document.getElementById("users");
   div.innerHTML="";
-
   for(let id in users){
-    if(id===myId) continue;
-
     const u=users[id];
-
     const el=document.createElement("div");
     el.className="user";
-
-    el.innerHTML=`<img src="${u.photo}">${u.name}`;
-
-    el.onclick=()=>{
-      if(confirm("Davet gönderilsin mi?")){
-        set(ref(db,"invites/"+id),{
-          from:myId, name:username
-        });
-      }
-    };
-
+    el.id="user-"+id;
+    el.innerHTML=`<img src="https://i.pravatar.cc/40?u=${id}">${u.name}`;
     div.appendChild(el);
   }
 });
 
-// DAVET
-onValue(ref(db,"invites/"+myId),snap=>{
-  const inv=snap.val();
-  if(!inv) return;
-
-  if(confirm(inv.name+" seni davet etti")){
-    roomId=Math.random().toString(36);
-
-    set(ref(db,"rooms/"+roomId+"/players/"+myId),true);
-    set(ref(db,"rooms/"+roomId+"/players/"+inv.from),true);
-
-    startGame();
-  }
-});
-
-// GAME
-function startGame(){
-  show("game");
-  document.getElementById("chat").style.display="block";
-  startVoice();
-}
-
-// CANVAS
+// 🔥 CANVAS FULL BRUSH
 const c=document.getElementById("c");
 const ctx=c.getContext("2d");
 
 let drawing=false;
+let undoStack=[];
+let redoStack=[];
 
-c.onmousedown=()=>drawing=true;
-c.onmouseup=()=>drawing=false;
+let brush={color:"#000", size:5, alpha:1, type:"round"};
+
+function setBrush(){
+  brush.color=document.getElementById("brushColor").value;
+  brush.size=document.getElementById("brushSize").value;
+  brush.alpha=document.getElementById("brushAlpha").value;
+  brush.type=document.getElementById("brushType").value;
+}
+
+["brushColor","brushSize","brushAlpha","brushType"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", setBrush);
+});
+
+function saveState(){
+  undoStack.push(c.toDataURL());
+  if(undoStack.length>20) undoStack.shift();
+}
+
+document.getElementById("undoBtn").onclick=()=>{
+  if(undoStack.length>0){
+    redoStack.push(c.toDataURL());
+    const img=new Image();
+    img.src=undoStack.pop();
+    img.onload=()=>ctx.drawImage(img,0,0);
+  }
+};
+document.getElementById("redoBtn").onclick=()=>{
+  if(redoStack.length>0){
+    undoStack.push(c.toDataURL());
+    const img=new Image();
+    img.src=redoStack.pop();
+    img.onload=()=>ctx.drawImage(img,0,0);
+  }
+};
+
+c.onmousedown=e=>{
+  drawing=true;
+  saveState();
+};
+c.onmouseup=e=>drawing=false;
 
 c.onmousemove=e=>{
-  if(!drawing || !roomId) return;
+  if(!drawing) return;
+  let x=e.offsetX, y=e.offsetY;
 
-  const x=e.offsetX, y=e.offsetY;
+  ctx.globalAlpha=brush.alpha;
+  ctx.fillStyle=brush.color;
+  ctx.strokeStyle=brush.color;
+  ctx.lineWidth=brush.size;
 
-  ctx.fillRect(x,y,5,5);
+  if(brush.type==="round"){
+    ctx.beginPath();
+    ctx.arc(x,y,brush.size/2,0,Math.PI*2);
+    ctx.fill();
+  } else if(brush.type==="square"){
+    ctx.fillRect(x-brush.size/2,y-brush.size/2,brush.size,brush.size);
+  } else if(brush.type==="line"){
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x+1,y+1);
+    ctx.stroke();
+  }
 
-  push(ref(db,"rooms/"+roomId+"/draw"),{x,y});
+  push(ref(db,"draw"),{x,y,brush});
 };
 
-onChildAdded(ref(db,"rooms"),()=>{});
+onChildAdded(ref(db,"draw"),snap=>{
+  const d=snap.val();
+  ctx.globalAlpha=d.brush.alpha;
+  ctx.fillStyle=d.brush.color;
+  ctx.strokeStyle=d.brush.color;
+  ctx.lineWidth=d.brush.size;
 
-// CHAT
+  if(d.brush.type==="round"){
+    ctx.beginPath();
+    ctx.arc(d.x,d.y,d.brush.size/2,0,Math.PI*2);
+    ctx.fill();
+  } else if(d.brush.type==="square"){
+    ctx.fillRect(d.x-d.brush.size/2,d.y-d.brush.size/2,d.brush.size,d.brush.size);
+  } else if(d.brush.type==="line"){
+    ctx.beginPath();
+    ctx.moveTo(d.x,d.y);
+    ctx.lineTo(d.x+1,d.y+1);
+    ctx.stroke();
+  }
+});
+
+// 💬 CHAT
 window.sendMsg=()=>{
   const text=document.getElementById("msg").value;
-
-  push(ref(db,"rooms/"+roomId+"/chat"),{
-    user:username, text:text
-  });
+  push(ref(db,"chat"),{user:username,text});
 };
 
-onChildAdded(ref(db,"rooms/"+roomId+"/chat"),snap=>{
+onChildAdded(ref(db,"chat"),snap=>{
   const d=snap.val();
-
   const div=document.createElement("div");
-
-  div.innerHTML=`${d.user}: ${d.text}
-  <div class="bubble">${d.text}</div>`;
-
+  div.className="msg";
+  div.innerText=d.user+": "+d.text;
   document.getElementById("messages").appendChild(div);
 });
 
-// 🎤 VOICE CHAT (basit)
+// 🎤 VOICE CHAT
+let pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
 let stream;
+let micOn=false;
 
-async function startVoice(){
-  stream = await navigator.mediaDevices.getUserMedia({ audio:true });
-
-  const audio=document.createElement("audio");
-  audio.srcObject=stream;
-  audio.autoplay=true;
-}
-
-// START
-show("login");
+document.getElementById("micBtn").onclick=async ()=>{
+  if(!micOn){
+    stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+    document.getElementById("micBtn").classList.add("active");
+    micOn=true;
+  } else {
+    stream.getTracks()[0].enabled=false;
+    document.getElementById("micBtn").classList.remove("active");
+    micOn=false;
+  }
+};
 
 </script>
 </body>
